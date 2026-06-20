@@ -6,18 +6,22 @@ import { api, ApiError } from '@/lib/api';
 import { API_PATHS } from '@/lib/constants';
 import { setToken, setRefreshToken, setStoredAdmin } from '@/lib/auth';
 import type { LoginResponse } from '@/lib/types';
-import { useRouter } from '@/i18n/navigation';
 
 /**
  * Single sign-on landing page. Receives a JWT from flek-monitor in `?token=`,
  * exchanges it for a Mozey admin token pair, persists the session, and
- * redirects to the requested page (or /museums by default).
+ * redirects to the requested page (default /museums).
  *
- * Both the embedded iframe (via flek-monitor's proxy) and direct visitors
- * to admin.mozey.uz/sso/callback land here.
+ * Works in two modes:
+ *   - direct:   admin.mozey.uz/<locale>/sso/callback
+ *   - proxied:  flek-monitor:3000/api/admin-proxy/mozey/<locale>/sso/callback
+ *
+ * We cannot use next-intl's useRouter for the post-success redirect because
+ * its history pushState writes the bare `/museums` URL — which inside the
+ * proxy iframe resolves to flek-monitor's origin, not mozey-admin's proxied
+ * path. We rewrite window.location.pathname instead, preserving any prefix.
  */
 export default function SsoCallbackPage() {
-  const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const ranRef = React.useRef(false);
 
@@ -44,10 +48,15 @@ export default function SsoCallbackPage() {
         setToken(data.accessToken);
         setRefreshToken(data.refreshToken);
         setStoredAdmin(data.admin);
-        // back is locale-stripped (e.g. "/museums"); Mozey's router will
-        // re-prefix it with the current locale.
+        // Rewrite path to land on back, preserving any proxy prefix:
+        //   /api/admin-proxy/mozey/ru/sso/callback → /api/admin-proxy/mozey/ru/museums
+        //   /ru/sso/callback                       → /ru/museums
         const target = back.startsWith('/') ? back : `/${back}`;
-        router.replace(target as `/${string}`);
+        const newPath = window.location.pathname.replace(
+          /\/sso\/callback\/?$/,
+          target,
+        );
+        window.location.replace(newPath);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(`SSO rejected (${err.statusCode}): ${err.message}`);
@@ -56,7 +65,7 @@ export default function SsoCallbackPage() {
         }
       }
     })();
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6">
