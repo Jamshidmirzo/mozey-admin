@@ -35,6 +35,23 @@ export function useMuseums(params: ListParams = {}) {
   });
 }
 
+const CITIES_KEY = 'admin-museum-cities';
+
+/**
+ * Distinct city values currently in the DB, for the city-input autosuggest.
+ * Pass a regionId to scope to a single region; pass null/undefined for global list.
+ */
+export function useMuseumCities(regionId?: string | null) {
+  return useQuery({
+    queryKey: [CITIES_KEY, regionId ?? 'all'],
+    queryFn: () =>
+      api.get<string[]>(
+        `${API_PATHS.ADMIN_MUSEUMS}/cities${regionId ? `?regionId=${regionId}` : ''}`
+      ),
+    staleTime: 60_000,
+  });
+}
+
 export function useMuseum(id: string) {
   return useQuery({
     queryKey: [MUSEUMS_KEY, id],

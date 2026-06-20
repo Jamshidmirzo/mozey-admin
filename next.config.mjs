@@ -20,7 +20,16 @@ const nextConfig = {
       },
       {
         protocol: 'http',
+        hostname: 'localhost',
+        port: '3333',
+      },
+      {
+        protocol: 'http',
         hostname: 'minio',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.mozey.uz',
       },
     ],
   },

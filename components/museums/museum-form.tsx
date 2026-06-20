@@ -24,9 +24,20 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import dynamic from 'next/dynamic';
 import { LanguageTabs } from '@/components/shared/language-tabs';
 import { RegionSelect } from '@/components/shared/region-select';
+import { CityInput } from '@/components/shared/city-input';
 import { PhotoUpload } from './photo-upload';
+import { PendingPhotos } from './pending-photos';
+import { uploadDirect, api } from '@/lib/api';
+import { API_PATHS } from '@/lib/constants';
+
+// Leaflet touches `window` on import — must be client-only.
+const MapPicker = dynamic(
+  () => import('@/components/shared/map-picker').then((m) => m.MapPicker),
+  { ssr: false, loading: () => <div className="h-[320px] rounded-lg bg-muted animate-pulse" /> },
+);
 import type { Museum } from '@/lib/types';
 
 interface MuseumFormProps {
@@ -69,18 +80,49 @@ export function MuseumForm({ museum }: MuseumFormProps) {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = React.useState<File[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = React.useState(false);
+
   async function onSubmit(data: MuseumFormValues) {
+    setSubmitError(null);
     try {
       if (isEdit) {
         await updateMutation.mutateAsync(data);
         toast.success(t('museums.museumUpdated'));
       } else {
-        await createMutation.mutateAsync(data);
+        const created = await createMutation.mutateAsync(data);
         toast.success(t('museums.museumCreated'));
-        router.push(ROUTES.MUSEUMS);
+
+        // Upload any photos the editor picked while creating the museum.
+        if (pendingPhotos.length > 0) {
+          setUploadingPhotos(true);
+          let uploaded = 0;
+          for (let i = 0; i < pendingPhotos.length; i++) {
+            try {
+              const { fileUrl } = await uploadDirect(pendingPhotos[i]);
+              await api.post(API_PATHS.ADMIN_MUSEUM_PHOTOS(created.id), {
+                url: fileUrl,
+                orderIdx: i,
+              });
+              uploaded++;
+            } catch (e) {
+              const m = e instanceof Error ? e.message : t('common.error');
+              toast.error(`${pendingPhotos[i].name}: ${m}`);
+            }
+          }
+          setUploadingPhotos(false);
+          if (uploaded > 0) {
+            toast.success(t('museums.photoUploaded'));
+          }
+        }
+
+        router.push(ROUTES.MUSEUM_EDIT(created.id));
       }
-    } catch {
-      toast.error(t('common.error'));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('common.error');
+      setSubmitError(msg);
+      toast.error(msg);
     }
   }
 
@@ -159,23 +201,10 @@ export function MuseumForm({ museum }: MuseumFormProps) {
           <Card>
             <CardHeader>
               <CardTitle>
-                {t('museums.city')} / {t('museums.latitude')} / {t('museums.longitude')}
+                {t('museums.region')} / {t('museums.city')} / {t('museums.latitude')} / {t('museums.longitude')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[13px] text-muted-foreground font-medium">{t('museums.city')}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="regionId"
@@ -192,6 +221,45 @@ export function MuseumForm({ museum }: MuseumFormProps) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[13px] text-muted-foreground font-medium">
+                      {t('museums.city')}{' '}
+                      <span className="text-muted-foreground/70 font-normal">
+                        ({t('museums.cityOptional')})
+                      </span>
+                    </FormLabel>
+                    <CityInput
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      regionId={form.watch('regionId')}
+                    />
+                    <p className="text-[12px] text-muted-foreground/80">
+                      {t('museums.cityHint')}
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="space-y-1.5">
+                <p className="text-[13px] text-muted-foreground font-medium">
+                  {t('museums.pickOnMap')}
+                </p>
+                <MapPicker
+                  latitude={Number(form.watch('latitude')) || 41.311081}
+                  longitude={Number(form.watch('longitude')) || 64.585262}
+                  onChange={(lat, lng) => {
+                    form.setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
+                    form.setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
+                  }}
+                />
+                <p className="text-[12px] text-muted-foreground/80">
+                  {t('museums.pickOnMapHint')}
+                </p>
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -265,6 +333,14 @@ export function MuseumForm({ museum }: MuseumFormProps) {
             </CardContent>
           </Card>
 
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              {submitError}
+            </div>
+          )}
           <div className="flex items-center gap-3 pt-2">
             <Button type="submit" disabled={isPending} className="min-w-[120px]">
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -288,6 +364,23 @@ export function MuseumForm({ museum }: MuseumFormProps) {
               entityId={museum.id}
               photos={museum.photos}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {!isEdit && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('museums.managePhotos')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PendingPhotos files={pendingPhotos} onFilesChange={setPendingPhotos} />
+            {uploadingPhotos && (
+              <p className="mt-3 text-sm text-muted-foreground inline-flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {t('museums.uploadingPhotos')}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

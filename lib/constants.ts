@@ -45,6 +45,10 @@ export const API_PATHS = {
 
   // Audit Log
   ADMIN_AUDIT_LOG: '/admin/audit-log',
+
+  // Upload
+  ADMIN_UPLOAD_PRESIGN: '/admin/upload/presign',
+  ADMIN_UPLOAD_DIRECT: '/admin/upload/direct',
 } as const;
 
 // Pagination defaults

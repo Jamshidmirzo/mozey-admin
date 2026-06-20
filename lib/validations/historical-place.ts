@@ -24,7 +24,7 @@ export const historicalPlaceSchema = z.object({
     .number({ invalid_type_error: 'validation.number' })
     .min(-180, 'validation.longitude')
     .max(180, 'validation.longitude'),
-  city: z.string().min(1, 'validation.required'),
+  city: z.string().optional().default(''),
   regionId: z.string().uuid().nullable().optional(),
   isPublished: z.boolean(),
 });

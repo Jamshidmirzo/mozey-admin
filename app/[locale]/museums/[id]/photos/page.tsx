@@ -2,9 +2,11 @@
 
 import { useTranslations } from 'next-intl';
 import { ArrowLeft } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMuseum } from '@/lib/hooks/use-museums';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
-import { PhotoUpload } from '@/components/museums/photo-upload';
+import { PhotoUpload as PhotoGrid } from '@/components/museums/photo-upload';
+import { PhotoUpload } from '@/components/photo-upload';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from '@/i18n/navigation';
@@ -19,6 +21,7 @@ interface PhotosPageProps {
 export default function MuseumPhotosPage({ params }: PhotosPageProps) {
   const t = useTranslations();
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const { data: museum, isLoading, error } = useMuseum(params.id);
 
   const museumName = museum ? getLocalizedValue(museum.name, locale) : '';
@@ -52,11 +55,22 @@ export default function MuseumPhotosPage({ params }: PhotosPageProps) {
         </div>
       )}
       {museum && (
-        <PhotoUpload
-          entityType="museum"
-          entityId={museum.id}
-          photos={museum.photos}
-        />
+        <div className="space-y-6">
+          <PhotoUpload
+            museumId={museum.id}
+            onUploaded={() => {
+              queryClient.invalidateQueries({
+                queryKey: ['admin-museums', museum.id],
+              });
+              queryClient.invalidateQueries({ queryKey: ['admin-museums'] });
+            }}
+          />
+          <PhotoGrid
+            entityType="museum"
+            entityId={museum.id}
+            photos={museum.photos}
+          />
+        </div>
       )}
     </DashboardShell>
   );

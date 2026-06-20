@@ -7,7 +7,7 @@ import {
 } from './auth';
 import type { RefreshResponse } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.230.225.147:3000/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.230.225.147:3000/api/v1';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -103,17 +103,17 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    let errorData: { message?: string; error?: string } = {};
+    let errorData: { message?: string | string[]; error?: string } = {};
     try {
       errorData = await response.json();
     } catch {
       // ignore JSON parse errors
     }
-    throw new ApiError(
-      response.status,
-      errorData.message || response.statusText,
-      errorData.error
-    );
+    const rawMessage = errorData.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join('; ')
+      : rawMessage || response.statusText;
+    throw new ApiError(response.status, message, errorData.error);
   }
 
   // Handle 204 No Content
@@ -153,6 +153,44 @@ export async function uploadToPresignedUrl(
   if (!response.ok) {
     throw new Error('Failed to upload file');
   }
+}
+
+// Upload file via multipart POST to /admin/upload/direct.
+// Server contract: { data: { fileUrl, key } } (or the bare object).
+export interface DirectUploadResult {
+  fileUrl: string;
+  key: string;
+}
+
+export async function uploadDirect(file: File): Promise<DirectUploadResult> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const url = `${API_BASE_URL}/admin/upload/direct`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errorData: { message?: string | string[] } = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      // ignore
+    }
+    const rawMessage = errorData.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join('; ')
+      : rawMessage || `Upload failed (${response.status})`;
+    throw new ApiError(response.status, message);
+  }
+
+  const json = await response.json();
+  const data = (json.data ?? json) as DirectUploadResult;
+  return data;
 }
 
 // Helper methods

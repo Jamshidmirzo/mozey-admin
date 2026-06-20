@@ -70,7 +70,10 @@ export function RegionForm({ region }: RegionFormProps) {
     }
   }, [watchNameUz, isEdit, form]);
 
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
   async function onSubmit(data: RegionFormValues) {
+    setSubmitError(null);
     try {
       if (isEdit) {
         await updateMutation.mutateAsync(data);
@@ -80,8 +83,10 @@ export function RegionForm({ region }: RegionFormProps) {
         toast.success(t('regions.regionCreated'));
         router.push(ROUTES.REGIONS);
       }
-    } catch {
-      toast.error(t('common.error'));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('common.error');
+      setSubmitError(msg);
+      toast.error(msg);
     }
   }
 
@@ -184,6 +189,14 @@ export function RegionForm({ region }: RegionFormProps) {
             </CardContent>
           </Card>
 
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              {submitError}
+            </div>
+          )}
           <div className="flex items-center gap-3 pt-2">
             <Button type="submit" disabled={isPending} className="min-w-[120px]">
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
