@@ -7,7 +7,10 @@ import {
 } from './auth';
 import type { RefreshResponse } from './types';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.230.225.147:3000/api/v1';
+// Default = prod over TLS so a release admin build with no env var still works.
+// Local dev sets NEXT_PUBLIC_API_URL=http://localhost:3333/api/v1 in .env.local.
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.mozey.uz/api/v1';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
