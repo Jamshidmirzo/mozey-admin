@@ -7,23 +7,17 @@ import { API_PATHS } from '@/lib/constants';
 import { setToken, setRefreshToken, setStoredAdmin } from '@/lib/auth';
 import type { LoginResponse } from '@/lib/types';
 
-/**
- * Single sign-on landing page. Receives a JWT from flek-monitor in `?token=`,
- * exchanges it for a Mozey admin token pair, persists the session, and
- * redirects to the requested page (default /museums).
- *
- * Works in two modes:
- *   - direct:   admin.mozey.uz/<locale>/sso/callback
- *   - proxied:  flek-monitor:3000/api/admin-proxy/mozey/<locale>/sso/callback
- *
- * We cannot use next-intl's useRouter for the post-success redirect because
- * its history pushState writes the bare `/museums` URL — which inside the
- * proxy iframe resolves to flek-monitor's origin, not mozey-admin's proxied
- * path. We rewrite window.location.pathname instead, preserving any prefix.
- */
 export default function SsoCallbackPage() {
+  const [status, setStatus] = React.useState<string>('Reading token from URL…');
   const [error, setError] = React.useState<string | null>(null);
+  const [debug, setDebug] = React.useState<string[]>([]);
   const ranRef = React.useRef(false);
+
+  const log = React.useCallback((line: string) => {
+    setDebug((d) => [...d, line]);
+    // eslint-disable-next-line no-console
+    console.log('[flek-sso]', line);
+  }, []);
 
   React.useEffect(() => {
     if (ranRef.current) return;
@@ -33,64 +27,87 @@ export default function SsoCallbackPage() {
     const token = url.searchParams.get('token');
     const back = url.searchParams.get('back') || '/museums';
 
+    log(`origin = ${window.location.origin}`);
+    log(`pathname = ${window.location.pathname}`);
+    log(`token = ${token ? token.slice(0, 30) + '…' : 'MISSING'}`);
+    log(`back = ${back}`);
+
     if (!token) {
-      setError('Missing SSO token');
+      setError('Missing SSO token in URL');
       return;
     }
 
     (async () => {
       try {
+        setStatus('POSTing token to mozey-api…');
+        log(`POST ${API_PATHS.ADMIN_SSO_EXCHANGE}`);
         const data = await api.post<LoginResponse>(
           API_PATHS.ADMIN_SSO_EXCHANGE,
           { token },
           { skipAuth: true },
         );
+        log(`exchange ok — admin email=${data.admin.email} role=${data.admin.role}`);
+
+        setStatus('Saving tokens to cookies…');
         setToken(data.accessToken);
         setRefreshToken(data.refreshToken);
         setStoredAdmin(data.admin);
-        // Rewrite path to land on back, preserving any proxy prefix:
-        //   /api/admin-proxy/mozey/ru/sso/callback → /api/admin-proxy/mozey/ru/museums
-        //   /ru/sso/callback                       → /ru/museums
+        log('cookies set');
+
         const target = back.startsWith('/') ? back : `/${back}`;
         const newPath = window.location.pathname.replace(
           /\/sso\/callback\/?$/,
           target,
         );
+        setStatus(`Redirecting to ${newPath}…`);
+        log(`redirect → ${newPath}`);
         window.location.replace(newPath);
       } catch (err) {
         if (err instanceof ApiError) {
-          setError(`SSO rejected (${err.statusCode}): ${err.message}`);
+          const msg = `SSO rejected (${err.statusCode}): ${err.message}`;
+          log(msg);
+          setError(msg);
         } else {
-          setError((err as Error).message || 'SSO failed');
+          const msg = (err as Error).message || 'SSO failed';
+          log(`error: ${msg}`);
+          setError(msg);
         }
       }
     })();
-  }, []);
+  }, [log]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6">
-      <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-8 text-center shadow-sm">
-        {error ? (
-          <>
-            <h1 className="text-base font-semibold text-rose-700">
-              SSO failed
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">{error}</p>
-            <a
-              href="/login"
-              className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Use password login instead →
-            </a>
-          </>
-        ) : (
-          <>
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
-            <p className="mt-3 text-sm text-zinc-600">
-              Signing you in via Flek SSO…
-            </p>
-          </>
-        )}
+      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="text-center">
+          {error ? (
+            <>
+              <h1 className="text-base font-semibold text-rose-700">SSO failed</h1>
+              <p className="mt-2 text-sm text-zinc-600">{error}</p>
+              <a
+                href="/login"
+                className="mt-4 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                Use password login instead →
+              </a>
+            </>
+          ) : (
+            <>
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-zinc-400" />
+              <p className="mt-3 text-sm font-medium text-zinc-700">{status}</p>
+              <p className="mt-1 text-xs text-zinc-500">Signing you in via Flek SSO…</p>
+            </>
+          )}
+        </div>
+
+        <details className="mt-6 rounded-md bg-zinc-100 px-3 py-2 text-left text-[11px] text-zinc-600">
+          <summary className="cursor-pointer font-mono uppercase tracking-wider text-[10px] text-zinc-500">
+            debug ({debug.length})
+          </summary>
+          <pre className="mt-2 whitespace-pre-wrap break-all font-mono text-[10px] leading-relaxed">
+{debug.join('\n') || '(empty)'}
+          </pre>
+        </details>
       </div>
     </div>
   );
