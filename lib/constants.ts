@@ -46,6 +46,10 @@ export const API_PATHS = {
   // Audit Log
   ADMIN_AUDIT_LOG: '/admin/audit-log',
 
+  // Notifications (prod-only feature; declared so the prod-untracked
+  // notification-form.tsx compiles after a git-tracked checkout).
+  ADMIN_NOTIFICATIONS_SEND: '/admin/notifications/send',
+
   // Upload
   ADMIN_UPLOAD_PRESIGN: '/admin/upload/presign',
   ADMIN_UPLOAD_DIRECT: '/admin/upload/direct',
