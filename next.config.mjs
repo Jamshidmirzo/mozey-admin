@@ -4,6 +4,8 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Required by /opt/mozey/admin/Dockerfile (runner stage copies .next/standalone).
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
