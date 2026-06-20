@@ -21,6 +21,7 @@ export const API_PATHS = {
   // Auth
   ADMIN_LOGIN: '/admin/auth/login',
   ADMIN_REFRESH: '/admin/auth/refresh',
+  ADMIN_SSO_EXCHANGE: '/admin/auth/sso-exchange',
 
   // Museums
   ADMIN_MUSEUMS: '/admin/museums',

@@ -8,12 +8,12 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
-const publicPages = ['/login'];
+const publicPages = ['/login', '/sso/callback'];
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if the page is public (login page)
+  // Check if the page is public (login + SSO bridge)
   const pathnameWithoutLocale = pathname.replace(
     /^\/(ru|uz|en)/,
     ''
