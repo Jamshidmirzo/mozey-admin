@@ -1,10 +1,11 @@
 'use client';
 
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { adminSchema, type AdminFormValues } from '@/lib/validations/admin';
 import { useCreateAdmin } from '@/lib/hooks/use-admins';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ interface AdminFormProps {
 export function AdminForm({ open, onOpenChange }: AdminFormProps) {
   const t = useTranslations();
   const createAdmin = useCreateAdmin();
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<AdminFormValues>({
     resolver: zodResolver(adminSchema),
@@ -97,11 +99,21 @@ export function AdminForm({ open, onOpenChange }: AdminFormProps) {
                 <FormItem>
                   <FormLabel>{t('admins.password')}</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
-                      autoComplete="new-password"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
