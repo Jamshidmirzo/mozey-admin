@@ -54,6 +54,7 @@
     "historicalPlaces": "Tarixiy joylar",
     "admins": "Administratorlar",
     "auditLog": "Amallar jurnali",
+    "notifications": "Bildirishnomalar",
     "settings": "Sozlamalar"
   },
   "header": {
@@ -201,5 +202,27 @@
     "latitude": "Kenglik -90 dan 90 gacha bo'lishi kerak",
     "longitude": "Uzunlik -180 dan 180 gacha bo'lishi kerak",
     "slugFormat": "Faqat kichik lotin harflari, raqamlar va chiziqlar"
+  },
+  "notifications": {
+    "title": "Bildirishnomalar",
+    "subtitle": "Ilova foydalanuvchilariga push-bildirishnomalar yuborish",
+    "sendNotification": "Bildirishnoma yuborish",
+    "notificationTitle": "Sarlavha",
+    "notificationBody": "Bildirishnoma matni",
+    "topic": "Mavzu (ixtiyoriy)",
+    "topicHint": "Agar mavzu ko'rsatilsa — Firebase Topic orqali yuboriladi, aks holda — barcha qurilmalarga",
+    "send": "Yuborish",
+    "sending": "Yuborilmoqda...",
+    "sentCount": "Yetkazildi",
+    "failedCount": "Xatolar",
+    "sentAt": "Yuborilgan",
+    "admin": "Administrator",
+    "confirmTitle": "Yuborishni tasdiqlang",
+    "confirmDescription": "Barcha foydalanuvchilarga push-bildirishnoma yuborishni xohlaysizmi?",
+    "confirmTopicDescription": "\"{topic}\" mavzusiga push-bildirishnoma yuborishni xohlaysizmi?",
+    "notificationSent": "Bildirishnoma yuborildi",
+    "notificationError": "Bildirishnoma yuborishda xatolik",
+    "noNotifications": "Bildirishnomalar hali yuborilmagan",
+    "history": "Bildirishnomalar tarixi"
   }
 }

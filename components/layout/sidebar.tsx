@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import {
+  Bell,
   Building2,
   Landmark,
   MapPin,
@@ -33,6 +34,7 @@ function useNavItems(): NavItem[] {
     { href: ROUTES.REGIONS, label: t('regions'), icon: MapPin },
     { href: ROUTES.MUSEUMS, label: t('museums'), icon: Building2 },
     { href: ROUTES.HISTORICAL_PLACES, label: t('historicalPlaces'), icon: Landmark },
+    { href: ROUTES.NOTIFICATIONS, label: t('notifications'), icon: Bell },
     { href: ROUTES.ADMINS, label: t('admins'), icon: Users, superadminOnly: true },
     { href: ROUTES.AUDIT_LOG, label: t('auditLog'), icon: ScrollText, superadminOnly: true },
   ];

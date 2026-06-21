@@ -12,6 +12,7 @@ export const ROUTES = {
   REGIONS: '/regions',
   REGION_NEW: '/regions/new',
   REGION_EDIT: (id: string) => `/regions/${id}`,
+  NOTIFICATIONS: '/notifications',
   ADMINS: '/admins',
   AUDIT_LOG: '/audit-log',
 } as const;
@@ -46,9 +47,8 @@ export const API_PATHS = {
   // Audit Log
   ADMIN_AUDIT_LOG: '/admin/audit-log',
 
-  // Notifications (prod-only feature; declared so the prod-untracked
-  // notification-form.tsx compiles after a git-tracked checkout).
-  ADMIN_NOTIFICATIONS_SEND: '/admin/notifications/send',
+  // Notifications
+  ADMIN_NOTIFICATIONS: '/admin/notifications',
 
   // Upload
   ADMIN_UPLOAD_PRESIGN: '/admin/upload/presign',

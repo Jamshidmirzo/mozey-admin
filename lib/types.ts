@@ -164,6 +164,24 @@ export interface PresignedUrlResponse {
   key: string;
 }
 
+export interface Notification {
+  id: string;
+  title: LocalizedField;
+  body: LocalizedField;
+  topic: string | null;
+  sentCount: number;
+  failedCount: number;
+  adminId: string;
+  adminEmail: string;
+  createdAt: string;
+}
+
+export interface CreateNotificationData {
+  title: LocalizedField;
+  body: LocalizedField;
+  topic?: string;
+}
+
 export interface ListParams {
   page?: number;
   limit?: number;

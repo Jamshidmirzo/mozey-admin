@@ -54,6 +54,7 @@
     "historicalPlaces": "Historical Places",
     "admins": "Administrators",
     "auditLog": "Audit Log",
+    "notifications": "Notifications",
     "settings": "Settings"
   },
   "header": {
@@ -201,5 +202,27 @@
     "latitude": "Latitude must be between -90 and 90",
     "longitude": "Longitude must be between -180 and 180",
     "slugFormat": "Only lowercase latin letters, numbers, and hyphens"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Send push notifications to app users",
+    "sendNotification": "Send Notification",
+    "notificationTitle": "Title",
+    "notificationBody": "Notification body",
+    "topic": "Topic (optional)",
+    "topicHint": "If topic is set — sends via Firebase Topic, otherwise — to all devices",
+    "send": "Send",
+    "sending": "Sending...",
+    "sentCount": "Delivered",
+    "failedCount": "Failed",
+    "sentAt": "Sent at",
+    "admin": "Administrator",
+    "confirmTitle": "Confirm sending",
+    "confirmDescription": "Are you sure you want to send a push notification to all users?",
+    "confirmTopicDescription": "Are you sure you want to send a push notification to topic \"{topic}\"?",
+    "notificationSent": "Notification sent",
+    "notificationError": "Failed to send notification",
+    "noNotifications": "No notifications sent yet",
+    "history": "Notification history"
   }
 }
