@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -38,7 +38,71 @@ const MapPicker = dynamic(
   () => import('@/components/shared/map-picker').then((m) => m.MapPicker),
   { ssr: false, loading: () => <div className="h-[320px] rounded-lg bg-muted animate-pulse" /> },
 );
+import { useFormContext, useWatch } from 'react-hook-form';
 import type { Museum } from '@/lib/types';
+
+function MapSection() {
+  const t = useTranslations();
+  const { setValue } = useFormContext<MuseumFormValues>();
+  const latitude = useWatch<MuseumFormValues, 'latitude'>({ name: 'latitude' });
+  const longitude = useWatch<MuseumFormValues, 'longitude'>({ name: 'longitude' });
+
+  const handleChange = React.useCallback(
+    (lat: number, lng: number) => {
+      setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
+      setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
+    },
+    [setValue],
+  );
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[13px] text-muted-foreground font-medium">
+        {t('museums.pickOnMap')}
+      </p>
+      <MapPicker
+        latitude={Number(latitude) || 41.311081}
+        longitude={Number(longitude) || 64.585262}
+        onChange={handleChange}
+      />
+      <p className="text-[12px] text-muted-foreground/80">
+        {t('museums.pickOnMapHint')}
+      </p>
+    </div>
+  );
+}
+
+function CitySection() {
+  const t = useTranslations();
+  const { control } = useFormContext<MuseumFormValues>();
+  const regionId = useWatch<MuseumFormValues, 'regionId'>({ name: 'regionId' });
+
+  return (
+    <FormField
+      control={control}
+      name="city"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="text-[13px] text-muted-foreground font-medium">
+            {t('museums.city')}{' '}
+            <span className="text-muted-foreground/70 font-normal">
+              ({t('museums.cityOptional')})
+            </span>
+          </FormLabel>
+          <CityInput
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            regionId={regionId}
+          />
+          <p className="text-[12px] text-muted-foreground/80">
+            {t('museums.cityHint')}
+          </p>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
 
 interface MuseumFormProps {
   museum?: Museum;
@@ -46,7 +110,6 @@ interface MuseumFormProps {
 
 export function MuseumForm({ museum }: MuseumFormProps) {
   const t = useTranslations();
-  const locale = useLocale();
   const router = useRouter();
   const isEdit = !!museum;
 
@@ -221,45 +284,8 @@ export function MuseumForm({ museum }: MuseumFormProps) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[13px] text-muted-foreground font-medium">
-                      {t('museums.city')}{' '}
-                      <span className="text-muted-foreground/70 font-normal">
-                        ({t('museums.cityOptional')})
-                      </span>
-                    </FormLabel>
-                    <CityInput
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
-                      regionId={form.watch('regionId')}
-                    />
-                    <p className="text-[12px] text-muted-foreground/80">
-                      {t('museums.cityHint')}
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="space-y-1.5">
-                <p className="text-[13px] text-muted-foreground font-medium">
-                  {t('museums.pickOnMap')}
-                </p>
-                <MapPicker
-                  latitude={Number(form.watch('latitude')) || 41.311081}
-                  longitude={Number(form.watch('longitude')) || 64.585262}
-                  onChange={(lat, lng) => {
-                    form.setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
-                    form.setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
-                  }}
-                />
-                <p className="text-[12px] text-muted-foreground/80">
-                  {t('museums.pickOnMapHint')}
-                </p>
-              </div>
+              <CitySection />
+              <MapSection />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
