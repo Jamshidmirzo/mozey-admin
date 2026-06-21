@@ -24,7 +24,7 @@ export function NotificationForm() {
     defaultValues: {
       title: { uz: '', ru: '', en: '' },
       body: { uz: '', ru: '', en: '' },
-      topic: '',
+      topic: 'all',
     },
   });
 
