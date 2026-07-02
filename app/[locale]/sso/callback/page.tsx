@@ -7,16 +7,10 @@ import { API_PATHS } from '@/lib/constants';
 import { setToken, setRefreshToken, setStoredAdmin } from '@/lib/auth';
 import type { LoginResponse } from '@/lib/types';
 
-// When loaded inside the flek-monitor proxy (monitoring.flek.uz), a relative
-// fetch would hit flek-monitor instead of mozey-api. Detect the proxy by
-// matching the /api/admin-proxy/<id>/ prefix and route through it instead.
-// Outside the proxy the baked-in NEXT_PUBLIC_API_URL is used.
+// Always call mozey-api directly — monitoring.flek.uz is in its CORS allowlist,
+// so this works whether the page loads standalone or inside the flek-monitor proxy.
 function buildExchangeUrl(): string {
-  if (typeof window === 'undefined') return API_PATHS.ADMIN_SSO_EXCHANGE;
-  const proxyMatch = window.location.pathname.match(/^(\/api\/admin-proxy\/[^/]+)\//);
-  const base = proxyMatch
-    ? `${proxyMatch[1]}/api/v1`
-    : process.env.NEXT_PUBLIC_API_URL || 'https://api.mozey.uz/api/v1';
+  const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.mozey.uz/api/v1';
   return `${base}${API_PATHS.ADMIN_SSO_EXCHANGE}`;
 }
 
