@@ -2,10 +2,23 @@
 
 import * as React from 'react';
 import { Loader2 } from 'lucide-react';
-import { api, ApiError } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { API_PATHS } from '@/lib/constants';
 import { setToken, setRefreshToken, setStoredAdmin } from '@/lib/auth';
 import type { LoginResponse } from '@/lib/types';
+
+// When loaded inside the flek-monitor proxy (monitoring.flek.uz), a relative
+// fetch would hit flek-monitor instead of mozey-api. Detect the proxy by
+// matching the /api/admin-proxy/<id>/ prefix and route through it instead.
+// Outside the proxy the baked-in NEXT_PUBLIC_API_URL is used.
+function buildExchangeUrl(): string {
+  if (typeof window === 'undefined') return API_PATHS.ADMIN_SSO_EXCHANGE;
+  const proxyMatch = window.location.pathname.match(/^(\/api\/admin-proxy\/[^/]+)\//);
+  const base = proxyMatch
+    ? `${proxyMatch[1]}/api/v1`
+    : process.env.NEXT_PUBLIC_API_URL || 'https://api.mozey.uz/api/v1';
+  return `${base}${API_PATHS.ADMIN_SSO_EXCHANGE}`;
+}
 
 export default function SsoCallbackPage() {
   const [status, setStatus] = React.useState<string>('Reading token from URL…');
@@ -39,13 +52,21 @@ export default function SsoCallbackPage() {
 
     (async () => {
       try {
-        setStatus('POSTing token to mozey-api…');
-        log(`POST ${API_PATHS.ADMIN_SSO_EXCHANGE}`);
-        const data = await api.post<LoginResponse>(
-          API_PATHS.ADMIN_SSO_EXCHANGE,
-          { token },
-          { skipAuth: true },
-        );
+        const exchangeUrl = buildExchangeUrl();
+        setStatus('Exchanging SSO token…');
+        log(`POST ${exchangeUrl}`);
+        const resp = await fetch(exchangeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        if (!resp.ok) {
+          let msg = resp.statusText;
+          try { const b = await resp.json(); msg = b?.message ?? b?.error ?? msg; } catch { /* ignore */ }
+          throw new ApiError(resp.status, Array.isArray(msg) ? msg.join('; ') : String(msg));
+        }
+        const json = await resp.json();
+        const data: LoginResponse = json.data ?? json;
         log(`exchange ok — admin email=${data.admin.email} role=${data.admin.role}`);
 
         setStatus('Saving tokens to cookies…');
